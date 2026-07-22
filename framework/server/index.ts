@@ -32,7 +32,7 @@ const runServer = async () => {
       .send(
         buildHtmlDoc(
           [
-            `<h1>Welcome to the People Directory</h1><p>Visit <a href="/appWithSSRData">/appWithSSRData</a> to see data loaded on the server</p><p>Visit <a href="/appWithoutSSRData">/appWithoutSSRData</a> to see data loaded on the client</p>`,
+            `<h1>Welcome to the People Directory</h1><p>Visit <a href="/appWithSSRData">/appWithSSRData</a> to see data loaded on the server</p><p>Visit <a href="/appWithoutSSRData">/appWithoutSSRData</a> to see data loaded on the client</p><p>Visit <a href="/appWithoutSSRDataPretty">/appWithoutSSRDataPretty</a> for the styled client-loaded directory</p><p>Visit <a href="/appWithSSRDataPretty">/appWithSSRDataPretty</a> for the styled server-preloaded directory</p>`,
           ],
           false,
         ),
@@ -53,6 +53,22 @@ const runServer = async () => {
     reply
       .header('content-type', 'text/html')
       .send(buildHtmlDoc(await renderApp(false)));
+  });
+
+  // styled demo of the client-loaded directory (original routes unchanged)
+  fastify.get('/appWithoutSSRDataPretty', async (request, reply) => {
+    wipeCache();
+    reply
+      .header('content-type', 'text/html')
+      .send(buildHtmlDoc(await renderApp(false, 'prettyWithoutSSR')));
+  });
+
+  // styled demo of the server-preloaded directory (original routes unchanged)
+  fastify.get('/appWithSSRDataPretty', async (request, reply) => {
+    wipeCache();
+    reply
+      .header('content-type', 'text/html')
+      .send(buildHtmlDoc(await renderApp(true, 'prettyWithSSR')));
   });
 
   fastify.listen({ port: 3000 }, (err, address) => {
