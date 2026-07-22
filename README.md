@@ -11,6 +11,36 @@ npm start
 
 Open [http://localhost:3000](http://localhost:3000).
 
+## Deploy (Fly.io + GitHub Actions)
+
+This app is a Node server (not a static site). It deploys to [Fly.io](https://fly.io) via Docker.
+
+### One-time setup
+
+1. Install the CLI and log in: `fly auth login`
+2. Create the app (name must match `app` in `fly.toml`):
+
+```bash
+fly apps create amex-challenge
+# if you chose another name, update `app` in fly.toml to match
+```
+
+3. Deploy once from your machine to verify:
+
+```bash
+fly deploy
+```
+
+4. In the GitHub repo → **Settings → Secrets and variables → Actions**, add:
+   - `FLY_API_TOKEN` — create with `fly tokens create deploy`
+
+5. Merge/push to `main`. [`.github/workflows/fly.yml`](.github/workflows/fly.yml) runs `flyctl deploy --remote-only`.
+
+### Notes
+
+- Server listens on `0.0.0.0` and `process.env.PORT` (Fly sets `PORT`)
+- Image builds with the repo `Dockerfile` (`npm run build`, then `node dist/server.js`)
+
 ## Tooling
 
 Choices made while configuring the repo (Task 1). Listed in the order they were added.
