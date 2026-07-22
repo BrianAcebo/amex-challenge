@@ -3,10 +3,67 @@
 // However, you must not change the surface API presented from this file,
 // and you should not need to change any other files in the project to complete the challenge
 
+import { useEffect, useState } from 'react';
+
+// In-memory cache for the data
+type CacheEntry = {
+	data: unknown | null;
+	error: Error | null;
+	// Set the promise while a request is in flight so concurrent callers reuse one fetch
+	promise?: Promise<void>;
+};
+
+const cache = new Map<string, CacheEntry>();
+
+// Listeners for hooks to subscribe to and re-render when the cache is updated
+const listeners = new Set<() => void>();
+
+// Notify the listeners when the cache is updated
+const notify = (): void => {
+	listeners.forEach((listener) => listener());
+};
+
+// Process the fetch for the URL if needed.
+// If a fetch is already running, or there is a result for this URL, do nothing
+const ensureFetched = (url: string): void => {
+	const existing = cache.get(url);
+
+	// Already have a result
+	if (existing && (existing.data !== null || existing.error !== null) && !existing.promise) {
+		return;
+	}
+
+	// Already fetching
+	if (existing?.promise) {
+		return;
+	}
+
+	const entry: CacheEntry = existing ?? { data: null, error: null };
+
+	entry.promise = (async () => {
+		try {
+			const res = await fetch(url);
+			if (!res.ok) {
+				throw new Error(`Request failed with status ${res.status}`);
+			}
+			entry.data = await res.json();
+			entry.error = null;
+		} catch (err: unknown) {
+			entry.data = null;
+			entry.error = err instanceof Error ? err : new Error(String(err));
+		} finally {
+			delete entry.promise;
+			notify();
+		}
+	})();
+
+	cache.set(url, entry);
+};
+
 type UseCachingFetch = (url: string) => {
-  isLoading: boolean;
-  data: unknown;
-  error: Error | null;
+	isLoading: boolean;
+	data: unknown;
+	error: Error | null;
 };
 
 /**
@@ -28,13 +85,35 @@ type UseCachingFetch = (url: string) => {
  *
  */
 export const useCachingFetch: UseCachingFetch = (url) => {
-  return {
-    data: null,
-    isLoading: false,
-    error: new Error(
-      'UseCachingFetch has not been implemented, please read the instructions in DevTask.md',
-    ),
-  };
+	// Force a rerender when the shared fetch settles
+	const [, setTick] = useState(0);
+
+	useEffect(() => {
+		// Add the rerender listener to the set
+		const rerender = () => setTick((t) => t + 1);
+		listeners.add(rerender);
+
+		// Process the fetch for the URL
+		ensureFetched(url);
+
+		return () => {
+			// Remove the rerender listener from the set
+			listeners.delete(rerender);
+		};
+	}, [url]);
+
+	const entry = cache.get(url);
+
+	if (entry?.data !== null && entry?.data !== undefined) {
+		return { isLoading: false, data: entry.data, error: null };
+	}
+
+	if (entry?.error) {
+		return { isLoading: false, data: null, error: entry.error };
+	}
+
+	// Cache miss or still loading
+	return { isLoading: true, data: null, error: null };
 };
 
 /**
