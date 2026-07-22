@@ -131,9 +131,13 @@ export const useCachingFetch: UseCachingFetch = (url) => {
  *
  */
 export const preloadCachingFetch = async (url: string): Promise<void> => {
-  throw new Error(
-    'preloadCachingFetch has not been implemented, please read the instructions in DevTask.md',
-  );
+	// Preload fetches into the shared cache before the app renders.
+	// useCachingFetch then sees the data already there and returns it immediately.
+	ensureFetched(url);
+	const entry = cache.get(url);
+	if (entry?.promise) {
+		await entry.promise;
+	}
 };
 
 /**

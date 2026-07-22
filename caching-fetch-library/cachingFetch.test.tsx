@@ -2,7 +2,7 @@
 
 import { renderHook, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { useCachingFetch } from './cachingFetch';
+import { preloadCachingFetch, useCachingFetch } from './cachingFetch';
 
 const jsonResponse = (data: unknown, status = 200) =>
 	Promise.resolve(
@@ -114,5 +114,33 @@ describe('useCachingFetch', () => {
 		expect(result.current.data).toBeNull();
 		expect(result.current.error).toBeInstanceOf(Error);
 		expect(result.current.error?.message).toMatch(/500/);
+	});
+});
+
+describe('preloadCachingFetch', () => {
+	beforeEach(() => {
+		vi.stubGlobal('fetch', vi.fn());
+	});
+
+	afterEach(() => {
+		vi.unstubAllGlobals();
+		vi.restoreAllMocks();
+	});
+
+	it('fills the cache so useCachingFetch can return data immediately', async () => {
+		const url = 'https://example.com/people-preload';
+		const people = [{ first: 'Katherine', last: 'Johnson' }];
+		vi.mocked(fetch).mockImplementation(() => jsonResponse(people));
+
+		await preloadCachingFetch(url);
+		expect(fetch).toHaveBeenCalledTimes(1);
+
+		const { result } = renderHook(() => useCachingFetch(url));
+
+		// Sync cache hit — no loading state after preload
+		expect(result.current.isLoading).toBe(false);
+		expect(result.current.data).toEqual(people);
+		expect(result.current.error).toBeNull();
+		expect(fetch).toHaveBeenCalledTimes(1);
 	});
 });
