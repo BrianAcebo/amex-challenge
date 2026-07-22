@@ -1,0 +1,48 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Environment variables (never commit — contains OAuth, API keys, tokens)
+.env
+.env.local
+.env.*.local
+.vercel
+.env*.local
+**/.env
+api/.env
+marketing/.env
+
+# Production data dumps (contain secrets — never commit)
+sql/chunks/prod_data*.sql
+# Any SQL with INSERTs of auth/gsc token data
+sql/**/prod_*.sql
+sql/**/*_data_*.sql
+
+# Supabase local DB volumes (contains token data)
+supabase/docker/volumes/
+
+# Blog-to-video: optional local font files (catalog is JSON-only; Remotion uses @remotion/google-fonts / CSS)
+video-service/fonts/bundled/*.ttf
+
+.astro/
