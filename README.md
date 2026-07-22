@@ -26,3 +26,4 @@ Ignores install/build output and local editor files (`node_modules`, `dist`, `.e
 | **ESLint** | Lint TypeScript/TSX via `eslint.config.mjs` (`@eslint/js`, `typescript-eslint`, `eslint-plugin-react-hooks`). |
 | **Prettier** | Code formatting via `.prettierrc`. `eslint-config-prettier` turns off ESLint rules that conflict with Prettier. Run `npm run format` / `npm run format:check`. |
 | **TypeScript** | Type-check with existing `tsconfig.json` (`strict`, `jsx: "react"`). Run `npm run typecheck` (`tsc --noEmit`). |
+| **Vitest** | Unit tests for pure helpers (`application/validation.ts`, `framework/server/buildHtmlDoc.ts`). Run `npm test` / `npm run test:watch`. |
