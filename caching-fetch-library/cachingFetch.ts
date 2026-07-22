@@ -156,8 +156,41 @@ export const preloadCachingFetch = async (url: string): Promise<void> => {
  * 4. This file passes a type-check.
  *
  */
-export const serializeCache = (): string => '';
+// Pack the cache so the server can put it in window.__INITIAL_DATA__.
+// Errors become message strings (Error doesn't JSON well).
+// Escape \ and ' because buildHtmlDoc wraps this in single quotes.
+export const serializeCache = (): string => {
+	const payload: Record<string, { data: unknown; error: string | null }> = {};
 
-export const initializeCache = (serializedCache: string): void => {};
+	cache.forEach((entry, url) => {
+		payload[url] = {
+			data: entry.data,
+			error: entry.error ? entry.error.message : null
+		};
+	});
 
-export const wipeCache = (): void => {};
+	return JSON.stringify(payload).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+};
+
+// Browser: rebuild the cache from __INITIAL_DATA__ before hydrate,
+// so useCachingFetch hits immediately and skips the network.
+export const initializeCache = (serializedCache: string): void => {
+	const payload = JSON.parse(serializedCache) as Record<
+		string,
+		{ data: unknown; error: string | null }
+	>;
+
+	cache.clear();
+
+	Object.entries(payload).forEach(([url, value]) => {
+		cache.set(url, {
+			data: value.data,
+			error: value.error ? new Error(value.error) : null
+		});
+	});
+};
+
+// Server calls this at the start of each request so caches don't leak across pages.
+export const wipeCache = (): void => {
+	cache.clear();
+};

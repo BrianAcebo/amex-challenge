@@ -2,7 +2,13 @@
 
 import { renderHook, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { preloadCachingFetch, useCachingFetch } from './cachingFetch';
+import {
+	initializeCache,
+	preloadCachingFetch,
+	serializeCache,
+	useCachingFetch,
+	wipeCache
+} from './cachingFetch';
 
 const jsonResponse = (data: unknown, status = 200) =>
 	Promise.resolve(
@@ -18,6 +24,7 @@ describe('useCachingFetch', () => {
 	});
 
 	afterEach(() => {
+		wipeCache();
 		vi.unstubAllGlobals();
 		vi.restoreAllMocks();
 	});
@@ -123,6 +130,7 @@ describe('preloadCachingFetch', () => {
 	});
 
 	afterEach(() => {
+		wipeCache();
 		vi.unstubAllGlobals();
 		vi.restoreAllMocks();
 	});
@@ -142,5 +150,55 @@ describe('preloadCachingFetch', () => {
 		expect(result.current.data).toEqual(people);
 		expect(result.current.error).toBeNull();
 		expect(fetch).toHaveBeenCalledTimes(1);
+	});
+});
+
+describe('serializeCache / initializeCache / wipeCache', () => {
+	beforeEach(() => {
+		vi.stubGlobal('fetch', vi.fn());
+	});
+
+	afterEach(() => {
+		wipeCache();
+		vi.unstubAllGlobals();
+		vi.restoreAllMocks();
+	});
+
+	it('round-trips cache data so the client can hydrate without refetching', async () => {
+		const url = 'https://example.com/people-ssr';
+		const people = [{ first: "O'Brien", last: 'Test' }];
+		vi.mocked(fetch).mockImplementation(() => jsonResponse(people));
+
+		await preloadCachingFetch(url);
+		const serialized = serializeCache();
+
+		// serializeCache escapes for HTML single quotes; the browser undoes that
+		// when parsing window.__INITIAL_DATA__ = '...'. Simulate that here.
+		const fromHtml = serialized.replace(/\\'/g, "'").replace(/\\\\/g, '\\');
+
+		wipeCache();
+		initializeCache(fromHtml);
+
+		const { result } = renderHook(() => useCachingFetch(url));
+
+		expect(result.current.isLoading).toBe(false);
+		expect(result.current.data).toEqual(people);
+		expect(fetch).toHaveBeenCalledTimes(1);
+	});
+
+	it('wipeCache clears entries so the next request starts empty', async () => {
+		const url = 'https://example.com/people-wipe';
+		vi.mocked(fetch).mockImplementation(() => jsonResponse([{ first: 'A', last: 'B' }]));
+
+		await preloadCachingFetch(url);
+		wipeCache();
+
+		const { result } = renderHook(() => useCachingFetch(url));
+		expect(result.current.isLoading).toBe(true);
+
+		await waitFor(() => {
+			expect(result.current.isLoading).toBe(false);
+		});
+		expect(fetch).toHaveBeenCalledTimes(2);
 	});
 });
