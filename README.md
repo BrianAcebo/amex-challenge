@@ -23,4 +23,4 @@ Ignores install/build output and local editor files (`node_modules`, `dist`, `.e
 
 | Tool | Purpose |
 |------|---------|
-| *(add entries here as tooling is installed — e.g. ESLint, Prettier, Vitest)* | |
+| **ESLint** | Lint TypeScript/TSX via `eslint.config.mjs` (`@eslint/js`, `typescript-eslint`, `eslint-plugin-react-hooks`). |
